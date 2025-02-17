@@ -54,6 +54,11 @@ const PostWidget = ({
     return String(loggedInUserId) === String(postUserId);
   }, [loggedInUserId, postUserId]);
 
+  // Get the actual ID whether postUserId is an object or string
+  const actualPostUserId = useMemo(() => {
+    return typeof postUserId === 'object' ? postUserId._id || postUserId.userId : postUserId;
+  }, [postUserId]);
+
   const patchLike = async () => {
     const response = await fetch(`${process.env.REACT_APP_API_URL}/posts/${postId}/like`, {
       method: "PATCH",
@@ -259,7 +264,7 @@ const PostWidget = ({
     <WidgetWrapper m="2rem 0">
       <FlexBetween>
         <Friend
-          friendId={postUserId}
+          friendId={actualPostUserId} // Pass the actual ID instead of the object
           name={name}
           subtitle={props.location}
           userPicturePath={props.userPicturePath || null} // Add null fallback

@@ -1,5 +1,5 @@
 import { Box, useMediaQuery } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "scenes/navbar";
 import FriendListWidget from "scenes/widgets/FriendListWidget";
@@ -14,7 +14,12 @@ const ProfilePage = () => {
   const token = useSelector((state) => state.token);
   const loggedInUserId = useSelector((state) => state.user?._id);
   const isNonMobileScreens = useMediaQuery("(min-width:1000px)");
-  const isOwnProfile = userId === loggedInUserId;
+
+  // Improve the isOwnProfile check to handle type coercion
+  const isOwnProfile = useMemo(() => {
+    if (!userId || !loggedInUserId) return false;
+    return String(userId) === String(loggedInUserId);
+  }, [userId, loggedInUserId]);
 
   const getUser = async () => {
     try {
@@ -70,7 +75,8 @@ const ProfilePage = () => {
           flexBasis={isNonMobileScreens ? "42%" : undefined}
           mt={isNonMobileScreens ? undefined : "2rem"}
         >
-          {isOwnProfile && (
+          {/* Only show MyPostWidget if it's the user's own profile and they're not a dummy user */}
+          {isOwnProfile && token && (
             <MyPostWidget picturePath={user.picturePath || null} />
           )}
           <Box m="2rem 0" />

@@ -56,7 +56,6 @@ function App() {
           <Box display="flex" flexDirection="column" minHeight="100vh">
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/home" element={<Navigate to="/" />} /> {/* Add this redirect */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route

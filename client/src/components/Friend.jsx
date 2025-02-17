@@ -113,17 +113,25 @@ const Friend = ({ friendId, name, subtitle, userPicturePath, isAuth = false }) =
     return shouldShow;
   }, [isAuth, isDummyUser, isSelf, loggedInUserId, friendId]);
 
+  // Ensure we have a clean ID for navigation
+  const navigateToProfile = () => {
+    if (isAuth && !isDummyUser && friendId) {
+      const actualId = typeof friendId === 'object' ? friendId._id || friendId.userId : friendId;
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      navigate(`/profile/${actualId}`);
+    } else if (!isAuth) {
+      navigate("/login");
+    }
+  };
+
   return (
     <FlexBetween>
       <FlexBetween gap="1rem">
         <UserImage image={userPicturePath} size="55px" />
-        <Box
-          onClick={() => {
-            if (isAuth && !isDummyUser && friendId) {
-              navigate(`/profile/${friendId}`);
-            }
-          }}
-        >
+        <Box onClick={navigateToProfile}>
           <Typography
             color={main}
             variant="h5"
