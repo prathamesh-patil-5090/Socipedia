@@ -30,8 +30,9 @@ const UserSchema = new mongoose.Schema(
       default: "",
     },
     friends: {
-      type: Array,
-      default: [],
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: []
     },
     location: String,
     occupation: String,
@@ -48,13 +49,10 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Add pre-save middleware to ensure friends is always an array
+// Add a pre-save middleware to ensure friends is always an array
 UserSchema.pre('save', function(next) {
-  if (this.friends === null || typeof this.friends === 'string') {
-    this.friends = [];
-  }
   if (!Array.isArray(this.friends)) {
-    this.friends = Array.isArray(this.friends) ? this.friends : [];
+    this.friends = [];
   }
   next();
 });

@@ -3,30 +3,61 @@ import { useDispatch, useSelector } from "react-redux";
 import { setPosts } from "state";
 import PostWidget from "./PostWidget";
 
-const PostsWidget = ({ userId, isProfile = false }) => {
+const PostsWidget = ({ userId, isProfile = false, isAuth = false }) => {
   const dispatch = useDispatch();
   const posts = useSelector((state) => state.posts);
   const token = useSelector((state) => state.token);
+  const loggedInUserId = useSelector((state) => state.user?._id); // Fix: Get _id from user object
 
   const getPosts = async () => {
-    const response = await fetch(`${process.env.REACT_APP_API_URL}/posts`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await response.json();
-    dispatch(setPosts({ posts: data })); // Ensure data includes comments with _id
+    try {
+      console.log("Fetching posts from:", `${process.env.REACT_APP_API_URL}/posts`);
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/posts`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Posts data received:", data);
+      dispatch(setPosts({ posts: data }));
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      dispatch(setPosts({ posts: [] }));
+    }
   };
 
   const getUserPosts = async () => {
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/posts/${userId}/posts`,
-      {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+    if (!token) return; // Don't fetch user posts if not authenticated
+    
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/posts/${userId}/posts`,
+        {
+          method: "GET",
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user posts');
       }
-    );
-    const data = await response.json();
-    dispatch(setPosts({ posts: data })); // Ensure data includes comments with _id
+
+      const data = await response.json();
+      dispatch(setPosts({ posts: data }));
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+      dispatch(setPosts({ posts: [] }));
+    }
   };
 
   useEffect(() => {
@@ -35,14 +66,17 @@ const PostsWidget = ({ userId, isProfile = false }) => {
     } else {
       getPosts();
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId, isProfile]); // Add isProfile to dependencies
 
   return (
     <>
-      {posts.map(
-        ({
+      {Array.isArray(posts) && posts.map((post) => {
+        // Ensure we have all required data
+        if (!post) return null;
+
+        const {
           _id,
-          userId,
+          userId: postUserId,
           firstName,
           lastName,
           description,
@@ -51,21 +85,24 @@ const PostsWidget = ({ userId, isProfile = false }) => {
           userPicturePath,
           likes,
           comments,
-        }) => (
+        } = post;
+
+        return (
           <PostWidget
             key={_id}
             postId={_id}
-            postUserId={userId}
-            name={`${firstName} ${lastName}`}
+            postUserId={postUserId}
+            name={`${firstName} ${lastName}`} // Properly construct name
             description={description}
             location={location}
             picturePath={picturePath}
             userPicturePath={userPicturePath}
-            likes={likes}
-            comments={comments}
+            likes={likes || {}}
+            comments={comments || []}
+            isAuth={isAuth}
           />
-        )
-      )}
+        );
+      })}
     </>
   );
 };

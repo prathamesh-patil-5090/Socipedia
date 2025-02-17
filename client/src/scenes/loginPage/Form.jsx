@@ -155,7 +155,7 @@ const Form = () => {
             token: loggedIn.token,
           })
         );
-        navigate("/home");
+        navigate("/"); // Changed from "/home" to "/"
       }
     } catch (error) {
       console.error("Login error:", error);

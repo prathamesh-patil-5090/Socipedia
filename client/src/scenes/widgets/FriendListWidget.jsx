@@ -9,12 +9,19 @@ const FriendListWidget = ({ userId }) => {
   const dispatch = useDispatch();
   const { palette } = useTheme();
   const token = useSelector((state) => state.token);
-  const friends = useSelector((state) => state.user.friends || []);
-  const loggedInUserId = useSelector((state) => state.user._id);
+  const friends = useSelector((state) => state.user?.friends || []);
+  const loggedInUserId = useSelector((state) => state.user?._id);
+
+  console.log("FriendListWidget state:", { 
+    userId, 
+    loggedInUserId,
+    friendsCount: friends.length, 
+    friends 
+  });
 
   const getFriends = async () => {
     if (!userId || !token) {
-      dispatch(setFriends({ friends: [] }));
+      console.log("No userId or token, skipping friend fetch");
       return;
     }
     
@@ -32,10 +39,10 @@ const FriendListWidget = ({ userId }) => {
       
       const data = await response.json();
       
+      console.log("Friends fetch response:", data);
+
       if (!response.ok) {
-        console.error("Server error:", data.message);
-        dispatch(setFriends({ friends: [] }));
-        return;
+        throw new Error(data.message || "Failed to fetch friends");
       }
       
       dispatch(setFriends({ friends: Array.isArray(data) ? data : [] }));
@@ -47,7 +54,7 @@ const FriendListWidget = ({ userId }) => {
 
   useEffect(() => {
     getFriends();
-  }, [userId, token]); // Add both dependencies back
+  }, [userId, token]);
 
   return (
     <WidgetWrapper>
@@ -65,12 +72,12 @@ const FriendListWidget = ({ userId }) => {
             .filter(friend => friend && friend._id && friend._id !== loggedInUserId)
             .map((friend) => (
               <Friend
-                key={`friend-${friend._id}`}
+                key={friend._id}
                 friendId={friend._id}
                 name={`${friend.firstName} ${friend.lastName}`}
                 subtitle={friend.occupation}
-                userPicturePath={friend.picturePath}
-                getFriends={getFriends}
+                userPicturePath={friend.picturePath || null} // Add null fallback
+                isAuth={true}
               />
             ))
         ) : (

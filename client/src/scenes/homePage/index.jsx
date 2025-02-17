@@ -1,4 +1,4 @@
-import { Box, useMediaQuery } from "@mui/material";
+import { Box, useMediaQuery, Typography } from "@mui/material";
 import { useSelector } from "react-redux";
 import Navbar from "scenes/navbar";
 import UserWidget from "scenes/widgets/UserWidget";
@@ -9,7 +9,10 @@ import FriendListWidget from "scenes/widgets/FriendListWidget";
 
 const HomePage = () => {
   const isNonMobileScreens = useMediaQuery("(min-width:1200px)");
-  const { _id, picturePath } = useSelector((state) => state.user);
+  const isAuth = Boolean(useSelector((state) => state.token));
+  const user = useSelector((state) => state.user) || {};
+  const { _id, picturePath } = user;
+  const isDummyUser = user?._id === "67b1d55da90d9304b1f869d5";
 
   return (
     <Box display="flex" flexDirection="column" minHeight="100vh">
@@ -22,17 +25,34 @@ const HomePage = () => {
         justifyContent="space-between"
         flexGrow={1}
       >
-        <Box flexBasis={isNonMobileScreens ? "26%" : undefined}>
-          <UserWidget userId={_id} picturePath={picturePath} />
-        </Box>
+        {/* Left Column */}
+        {isAuth && !isDummyUser && (
+          <Box flexBasis={isNonMobileScreens ? "26%" : undefined}>
+            <UserWidget userId={_id} picturePath={picturePath} />
+          </Box>
+        )}
+
+        {/* Middle Column */}
         <Box
-          flexBasis={isNonMobileScreens ? "42%" : undefined}
+          flexBasis={isNonMobileScreens ? (isAuth && !isDummyUser ? "42%" : "70%") : undefined}
           mt={isNonMobileScreens ? undefined : "2rem"}
         >
-          <MyPostWidget picturePath={picturePath} />
-          <PostsWidget userId={_id} />
+          {isDummyUser && (
+            <Typography 
+              variant="h5" 
+              textAlign="center" 
+              mb={2}
+              color="primary"
+            >
+              Please login or register to interact with posts
+            </Typography>
+          )}
+          {isAuth && !isDummyUser && <MyPostWidget picturePath={picturePath} />}
+          <PostsWidget userId={_id} isAuth={isAuth && !isDummyUser} />
         </Box>
-        {isNonMobileScreens && (
+
+        {/* Right Column */}
+        {isNonMobileScreens && isAuth && !isDummyUser && (
           <Box flexBasis="26%">
             <AdvertWidget />
             <Box m="2rem 0" />

@@ -47,50 +47,64 @@ export const getUserFriends = async (req, res) => {
 /* UPDATE */
 export const addRemoveFriend = async (req, res) => {
   try {
-    const { id, friendId } = req.params;
-    
-    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(friendId)) {
-      return res.status(400).json({ message: "Invalid ID format" });
+    const { id: userId, friendId } = req.params;
+    console.log("Attempting friend operation:", { userId, friendId });
+
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(friendId)) {
+      return res.status(400).json({ message: "Invalid user ID format" });
     }
 
-    if (id === friendId) {
-      return res.status(400).json({ message: "Cannot add yourself as friend" });
-    }
+    const [user, friend] = await Promise.all([
+      User.findById(userId),
+      User.findById(friendId)
+    ]);
 
-    const user = await User.findById(id);
-    const friend = await User.findById(friendId);
-
+    // Check if both users exist
     if (!user || !friend) {
+      console.log("User or friend not found:", { user, friend });
       return res.status(404).json({ message: "User or friend not found" });
     }
 
-    // Initialize arrays if needed
-    if (!Array.isArray(user.friends)) user.friends = [];
-    if (!Array.isArray(friend.friends)) friend.friends = [];
+    // Ensure friends arrays exist
+    user.friends = Array.isArray(user.friends) ? user.friends : [];
+    friend.friends = Array.isArray(friend.friends) ? friend.friends : [];
 
-    const userFriends = user.friends.map(fid => fid.toString());
-    
-    if (userFriends.includes(friendId)) {
-      user.friends = user.friends.filter(fid => fid.toString() !== friendId);
-      friend.friends = friend.friends.filter(fid => fid.toString() !== id);
+    const friendIdStr = friendId.toString();
+    const userIdStr = userId.toString();
+
+    // Check if they are already friends
+    const areFriends = user.friends.some(fid => fid.toString() === friendIdStr);
+
+    if (areFriends) {
+      // Remove from both users' friend lists
+      user.friends = user.friends.filter(id => id.toString() !== friendIdStr);
+      friend.friends = friend.friends.filter(id => id.toString() !== userIdStr);
+      console.log("Removing friend relationship");
     } else {
-      user.friends.push(mongoose.Types.ObjectId(friendId));
-      friend.friends.push(mongoose.Types.ObjectId(id));
+      // Add to both users' friend lists
+      user.friends.push(friendId);
+      friend.friends.push(userId);
+      console.log("Adding friend relationship");
     }
 
-    await Promise.all([
-      user.save(),
-      friend.save()
-    ]);
+    // Save both users
+    await Promise.all([user.save(), friend.save()]);
 
-    const updatedFriends = await User.find({
-      '_id': { $in: user.friends }
-    }).select('firstName lastName occupation location picturePath');
+    // Get updated friend list with details
+    const updatedFriends = await User.find(
+      { _id: { $in: user.friends }},
+      'firstName lastName occupation location picturePath _id'
+    );
 
+    console.log("Returning updated friends list:", updatedFriends.length);
     res.status(200).json(updatedFriends);
   } catch (err) {
-    console.error("Error updating friend status:", err);
-    res.status(500).json({ message: err.message });
+    console.error("Friend operation error:", err);
+    res.status(500).json({ 
+      message: "Failed to update friend relationship",
+      error: err.message
+    });
   }
 };
 

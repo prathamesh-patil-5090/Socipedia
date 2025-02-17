@@ -24,10 +24,12 @@ export const authSlice = createSlice({
     },
     setFriends: (state, action) => {
       if (state.user) {
-        state.user.friends = action.payload.friends;
-        state.user = { ...state.user };
+        console.log("Setting friends:", action.payload.friends);
+        state.user.friends = Array.isArray(action.payload.friends) 
+          ? action.payload.friends 
+          : [];
       } else {
-        console.error("user friends non-existent :(");
+        console.error("No user state found when trying to set friends");
       }
     },
     setPosts: (state, action) => {

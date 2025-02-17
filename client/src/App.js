@@ -1,20 +1,52 @@
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import HomePage from "scenes/homePage";
 import LoginPage from "scenes/loginPage";
-import ProfilePage from "scenes/profilePage";
+import ProfilePage from "scenes/widgets";
 import ForgotPassword from "scenes/loginPage/ForgotPassword";
-import { useMemo } from "react";
-import { useSelector } from "react-redux";
+import { useMemo, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { createTheme } from "@mui/material/styles";
 import { themeSettings } from "./theme";
 import Footer from "components/Footer";
 import { Box } from "@mui/material";
+import { setLogin } from "state";
 
 function App() {
+  const dispatch = useDispatch();
   const mode = useSelector((state) => state.mode);
   const theme = useMemo(() => createTheme(themeSettings(mode)), [mode]);
   const isAuth = Boolean(useSelector((state) => state.token));
+  const user = useSelector((state) => state.user);
+
+  useEffect(() => {
+    const loginDummyUser = async () => {
+      if (!isAuth && !user) {
+        try {
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              usernameOrEmail: "dummy@gmail.com",
+              password: "dummy@gmail.com", // replace with actual dummy account password
+            }),
+          });
+          
+          const data = await response.json();
+          if (response.ok) {
+            dispatch(setLogin({
+              user: data.user,
+              token: null // Keep token null to maintain restricted access
+            }));
+          }
+        } catch (error) {
+          console.error("Error logging in dummy user:", error);
+        }
+      }
+    };
+
+    loginDummyUser();
+  }, [dispatch, isAuth, user]);
 
   return (
     <div className="app">
@@ -23,15 +55,13 @@ function App() {
           <CssBaseline />
           <Box display="flex" flexDirection="column" minHeight="100vh">
             <Routes>
-              <Route path="/" element={<LoginPage />} />
+              <Route path="/" element={<HomePage />} />
+              <Route path="/home" element={<Navigate to="/" />} /> {/* Add this redirect */}
+              <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route
-                path="/home"
-                element={isAuth ? <HomePage /> : <Navigate to="/" />}
-              />
-              <Route
                 path="/profile/:userId"
-                element={isAuth ? <ProfilePage /> : <Navigate to="/" />}
+                element={isAuth ? <ProfilePage /> : <Navigate to="/login" />}
               />
             </Routes>
             <Footer />
